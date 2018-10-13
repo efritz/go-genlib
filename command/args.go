@@ -33,7 +33,11 @@ func parseArgs(
 ) (*Options, error) {
 	app := kingpin.New(name, description).Version(version)
 
-	opts := &Options{}
+	opts := &Options{
+		ImportPaths: []string{},
+		Interfaces:  []string{},
+	}
+
 	app.Arg("path", "The import paths used to search for eligible interfaces").Required().StringsVar(&opts.ImportPaths)
 	app.Flag("dirname", "The target output directory. Each mock will be written to a unique file.").Short('d').StringVar(&opts.OutputDir)
 	app.Flag("filename", "The target output file. All mocks are written to this file.").Short('o').StringVar(&opts.OutputFilename)

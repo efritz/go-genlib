@@ -46,6 +46,10 @@ func Run(
 		config.argValidator,
 	)
 
+	if err != nil {
+		return err
+	}
+
 	ifaces, err := Extract(
 		typeGetter,
 		opts.ImportPaths,
