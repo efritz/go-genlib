@@ -15,7 +15,6 @@ type (
 		argValidator ArgValidatorFunc
 	}
 
-	TypeGetter       func(pkgs *types.Packages, name string) (*types.Interface, error)
 	Generator        func(ifaces []*types.Interface, opts *Options) error
 	ArgHookFunc      func(app *kingpin.Application)
 	ArgValidatorFunc func(opts *Options) (error, bool)
@@ -25,7 +24,7 @@ func Run(
 	name string,
 	description string,
 	version string,
-	typeGetter TypeGetter,
+	typeGetter types.TypeGetter,
 	generator Generator,
 	configs ...ConfigFunc,
 ) error {

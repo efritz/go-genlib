@@ -5,9 +5,13 @@ import (
 	"sort"
 )
 
-type Packages struct {
-	packages map[string]*Package
-}
+type (
+	Packages struct {
+		packages map[string]*Package
+	}
+
+	TypeGetter func(pkgs *Packages, name string) (*Interface, error)
+)
 
 func NewPackages(packages map[string]*Package) *Packages {
 	return &Packages{
@@ -60,6 +64,9 @@ func (p *Packages) getType(name string, matcher func(InterfaceType) bool) (*Inte
 //
 // Helpers
 
-func aType(ifaceType InterfaceType) bool { return true }
-func sType(ifaceType InterfaceType) bool { return ifaceType == InterfaceTypeStruct }
-func iType(ifaceType InterfaceType) bool { return ifaceType == InterfaceTypeInterface }
+func aType(ifaceType InterfaceType) bool                           { return true }
+func sType(ifaceType InterfaceType) bool                           { return ifaceType == InterfaceTypeStruct }
+func iType(ifaceType InterfaceType) bool                           { return ifaceType == InterfaceTypeInterface }
+func GetType(pkgs *Packages, name string) (*Interface, error)      { return pkgs.GetType(name) }
+func GetStruct(pkgs *Packages, name string) (*Interface, error)    { return pkgs.GetStruct(name) }
+func GetInterface(pkgs *Packages, name string) (*Interface, error) { return pkgs.GetInterface(name) }

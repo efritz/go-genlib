@@ -10,7 +10,7 @@ import (
 )
 
 func Extract(
-	typeGetter TypeGetter,
+	typeGetter types.TypeGetter,
 	importPaths []string,
 	targetNames []string,
 ) ([]*types.Interface, error) {
