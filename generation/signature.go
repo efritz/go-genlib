@@ -91,10 +91,14 @@ func GenerateSuperCall(method *types.Method) jen.Code {
 }
 
 func GenerateSuperReturn(method *types.Method) jen.Code {
-	ret := jen.Return().Id("r0")
+	ret := jen.Return()
 
-	for i := 1; i < len(method.Results); i++ {
-		ret = ret.Op(",").Id(fmt.Sprintf("r%d", i))
+	if len(method.Results) > 0 {
+		ret = ret.Id("r0")
+
+		for i := 1; i < len(method.Results); i++ {
+			ret = ret.Op(",").Id(fmt.Sprintf("r%d", i))
+		}
 	}
 
 	return ret
