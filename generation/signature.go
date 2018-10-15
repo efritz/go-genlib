@@ -66,7 +66,7 @@ func GenerateResultTypes(method *types.Method, importPath string) []jen.Code {
 	return results
 }
 
-func GenerateSuperCall(method *types.Method) jen.Code {
+func GenerateDecoratedCall(method *types.Method, target *jen.Statement) jen.Code {
 	names := []jen.Code{}
 	for i := range method.Params {
 		name := jen.Id(fmt.Sprintf("v%d", i))
@@ -77,7 +77,7 @@ func GenerateSuperCall(method *types.Method) jen.Code {
 		names = append(names, name)
 	}
 
-	dispatch := jen.Id("m").Dot(method.Name).Call(names...)
+	dispatch := target.Call(names...)
 	if len(method.Results) == 0 {
 		return dispatch
 	}
@@ -90,7 +90,7 @@ func GenerateSuperCall(method *types.Method) jen.Code {
 	return Compose(assign.Op(":="), dispatch)
 }
 
-func GenerateSuperReturn(method *types.Method) jen.Code {
+func GenerateDecoratedReturn(method *types.Method) jen.Code {
 	ret := jen.Return()
 
 	if len(method.Results) > 0 {
@@ -103,5 +103,3 @@ func GenerateSuperReturn(method *types.Method) jen.Code {
 
 	return ret
 }
-
-// TODO - get param names
