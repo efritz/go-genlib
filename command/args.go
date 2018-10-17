@@ -19,7 +19,6 @@ type Options struct {
 	OutputDir      string
 	Prefix         string
 	Force          bool
-	ListOnly       bool
 }
 
 var GoIdentifierPattern = regexp.MustCompile("^[A-Za-z]([A-Za-z0-9_]*[A-Za-z])?$")
@@ -43,7 +42,6 @@ func parseArgs(
 	app.Flag("filename", "The target output file. All mocks are written to this file.").Short('o').StringVar(&opts.OutputFilename)
 	app.Flag("force", "Do not abort if a write to disk would overwrite an existing file.").Short('f').BoolVar(&opts.Force)
 	app.Flag("interfaces", "A whitelist of interfaces to generate given the import paths.").Short('i').StringsVar(&opts.Interfaces)
-	app.Flag("list", "Dry run - print the interfaces found in the given import paths.").BoolVar(&opts.ListOnly)
 	app.Flag("package", "The name of the generated package. Is the name of target directory if dirname or filename is supplied by default.").Short('p').StringVar(&opts.PkgName)
 	app.Flag("prefix", "A prefix used in the name of each mock struct. Should be TitleCase by convention.").StringVar(&opts.Prefix)
 	argHook(app)
@@ -68,10 +66,6 @@ func parseArgs(
 func validateOptions(opts *Options) (error, bool) {
 	if err, fatal := validateOutputPaths(opts); err != nil {
 		return err, fatal
-	}
-
-	if opts.ListOnly {
-		return nil, false
 	}
 
 	if opts.PkgName == "" {

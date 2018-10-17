@@ -59,14 +59,6 @@ func Run(
 		return err
 	}
 
-	if opts.ListOnly {
-		for _, iface := range ifaces {
-			fmt.Printf("%s\n", iface.Name)
-		}
-
-		return nil
-	}
-
 	nameMap := map[string]struct{}{}
 	for _, t := range ifaces {
 		nameMap[strings.ToLower(t.Name)] = struct{}{}
