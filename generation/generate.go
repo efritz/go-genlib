@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -53,8 +54,7 @@ func Generate(
 }
 
 func inferImportPath(path string) (string, error) {
-	gopath := paths.Gopath()
-	if strings.HasPrefix(path, gopath) {
+	if gopath := paths.Gopath(); strings.HasPrefix(path, gopath) {
 		// gopath + /src/
 		return path[len(gopath)+5:], nil
 	}
@@ -87,7 +87,10 @@ func generateFile(
 		}
 
 		if exists && !opts.Force {
-			return fmt.Errorf("filename %s already exists", opts.OutputFilename)
+			return fmt.Errorf(
+				"filename %s already exists, overwrite with --force",
+				paths.GetRelativePath(opts.OutputFilename),
+			)
 		}
 
 		return writeFile(opts.OutputFilename, content)
@@ -123,7 +126,10 @@ func generateDirectory(
 		}
 
 		if conflict != "" {
-			return fmt.Errorf("filename %s already exists", conflict)
+			return fmt.Errorf(
+				"filename %s already exists, overwrite with --force",
+				paths.GetRelativePath(conflict),
+			)
 		}
 	}
 
@@ -174,6 +180,11 @@ func generateContent(
 	file := newFile(appName, pkgName)
 
 	for _, iface := range ifaces {
+		log.Printf(
+			"generating code for interface '%s'\n",
+			iface.Name,
+		)
+
 		interfaceGenerator(file, iface, prefix)
 	}
 
@@ -197,5 +208,10 @@ func newFile(appName, pkgName string) *jen.File {
 }
 
 func writeFile(filename, content string) error {
+	log.Printf(
+		"writing to '%s'\n",
+		paths.GetRelativePath(filename),
+	)
+
 	return ioutil.WriteFile(filename, []byte(content), 0644)
 }

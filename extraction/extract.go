@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	gotypes "go/types"
+	"log"
 	"os"
 	"path"
 	"strings"
@@ -41,6 +42,11 @@ func (e *Extractor) Extract(importPaths []string) (*types.Packages, error) {
 			return nil, err
 		}
 
+		log.Printf(
+			"parsing package '%s'\n",
+			importPath,
+		)
+
 		pkg, pkgType, err := e.importPath(path, importPath)
 		if err != nil {
 			return nil, err
@@ -49,6 +55,10 @@ func (e *Extractor) Extract(importPaths []string) (*types.Packages, error) {
 		visitor := newVisitor(importPath, pkgType)
 		for _, file := range pkg.Files {
 			ast.Walk(visitor, file)
+		}
+
+		for name := range visitor.types {
+			log.Printf("extracted type '%s'\n", name)
 		}
 
 		packages[importPath] = types.NewPackage(importPath, visitor.types)
@@ -76,14 +86,21 @@ func (e *Extractor) importPath(path, importPath string) (*ast.Package, *gotypes.
 
 	pkgType, err := e.typeConfig.Check("", e.fset, files, nil)
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not import package '%s' (%s)", importPath, err.Error())
+		return nil, nil, fmt.Errorf(
+			"could not import package '%s' (%s)",
+			importPath,
+			err.Error(),
+		)
 	}
 
 	if pkg := getFirst(pkgs); pkg != nil {
 		return pkg, pkgType, nil
 	}
 
-	return nil, nil, fmt.Errorf("could not import package '%s' (no files in import path)", importPath)
+	return nil, nil, fmt.Errorf(
+		"could not import package '%s' (no files in import path)",
+		importPath,
+	)
 }
 
 func fileFilter(info os.FileInfo) bool {
