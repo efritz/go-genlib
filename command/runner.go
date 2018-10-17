@@ -17,7 +17,7 @@ type (
 
 	Generator        func(ifaces []*types.Interface, opts *Options) error
 	ArgHookFunc      func(app *kingpin.Application)
-	ArgValidatorFunc func(opts *Options) (error, bool)
+	ArgValidatorFunc func(opts *Options) (bool, error)
 )
 
 func Run(
@@ -30,7 +30,7 @@ func Run(
 ) error {
 	config := &commandConfig{
 		argHook:      func(_ *kingpin.Application) {},
-		argValidator: func(_ *Options) (error, bool) { return nil, false },
+		argValidator: func(_ *Options) (bool, error) { return false, nil },
 	}
 
 	for _, f := range configs {

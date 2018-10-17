@@ -50,8 +50,14 @@ func parseArgs(
 		return nil, err
 	}
 
-	for _, f := range []ArgValidatorFunc{validateOptions, argValidator} {
-		if err, fatal := f(opts); err != nil {
+	validators := []ArgValidatorFunc{
+		validateOutputPaths,
+		validateOptions,
+		argValidator,
+	}
+
+	for _, f := range validators {
+		if fatal, err := f(opts); err != nil {
 			if !fatal {
 				kingpin.Fatalf("%s, try --help", err.Error())
 			}
@@ -63,34 +69,30 @@ func parseArgs(
 	return opts, nil
 }
 
-func validateOptions(opts *Options) (error, bool) {
-	if err, fatal := validateOutputPaths(opts); err != nil {
-		return err, fatal
-	}
-
+func validateOptions(opts *Options) (bool, error) {
 	if opts.PkgName == "" {
 		if opts.OutputDir == "" {
-			return fmt.Errorf("could not infer package"), false
+			return false, fmt.Errorf("could not infer package")
 		}
 
 		opts.PkgName = path.Base(opts.OutputDir)
 	}
 
 	if !GoIdentifierPattern.Match([]byte(opts.PkgName)) {
-		return fmt.Errorf("illegal package name supplied"), false
+		return false, fmt.Errorf("illegal package name supplied")
 	}
 
 	if opts.Prefix != "" && !GoIdentifierPattern.Match([]byte(opts.Prefix)) {
 		kingpin.Fatalf("illegal prefix supplied, try --help")
 	}
 
-	return nil, false
+	return false, nil
 }
 
-func validateOutputPaths(opts *Options) (error, bool) {
+func validateOutputPaths(opts *Options) (bool, error) {
 	wd, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("failed to get current directory"), true
+		return true, fmt.Errorf("failed to get current directory")
 	}
 
 	if opts.OutputFilename == "" && opts.OutputDir == "" {
@@ -98,29 +100,33 @@ func validateOutputPaths(opts *Options) (error, bool) {
 	}
 
 	if opts.OutputFilename != "" && opts.OutputDir != "" {
-		return fmt.Errorf("dirname and filename are mutually exclusive"), false
+		return false, fmt.Errorf("dirname and filename are mutually exclusive")
 	}
 
 	if opts.OutputFilename != "" {
 		filename, err := filepath.Abs(opts.OutputFilename)
 		if err != nil {
-			return err, true
+			return true, err
 		}
 
 		opts.OutputDir = path.Dir(filename)
 		opts.OutputFilename = path.Base(filename)
 	}
 
-	dirname, err := filepath.Abs(opts.OutputDir)
+	dirname, err := filepath.EvalSymlinks(opts.OutputDir)
 	if err != nil {
-		return err, true
+		return true, err
 	}
 
 	opts.OutputDir = dirname
 
 	if err := paths.EnsureDirExists(dirname); err != nil {
-		return fmt.Errorf("failed to make output directory %s: %s", dirname, err.Error()), true
+		return true, fmt.Errorf(
+			"failed to make output directory %s: %s",
+			dirname,
+			err.Error(),
+		)
 	}
 
-	return nil, false
+	return false, nil
 }
