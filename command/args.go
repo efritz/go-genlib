@@ -104,29 +104,32 @@ func validateOutputPaths(opts *Options) (bool, error) {
 	}
 
 	if opts.OutputFilename != "" {
-		filename, err := filepath.Abs(opts.OutputFilename)
-		if err != nil {
-			return true, err
-		}
-
-		opts.OutputDir = path.Dir(filename)
-		opts.OutputFilename = path.Base(filename)
+		opts.OutputDir = path.Dir(opts.OutputFilename)
+		opts.OutputFilename = path.Base(opts.OutputFilename)
 	}
 
-	dirname, err := filepath.EvalSymlinks(opts.OutputDir)
-	if err != nil {
-		return true, err
-	}
-
-	opts.OutputDir = dirname
-
-	if err := paths.EnsureDirExists(dirname); err != nil {
+	if err := paths.EnsureDirExists(opts.OutputDir); err != nil {
 		return true, fmt.Errorf(
 			"failed to make output directory %s: %s",
-			dirname,
+			opts.OutputDir,
 			err.Error(),
 		)
 	}
 
+	if opts.OutputDir, err = cleanPath(opts.OutputDir); err != nil {
+		return true, err
+	}
+
 	return false, nil
+}
+
+func cleanPath(path string) (cleaned string, err error) {
+	cleaned = path
+	for _, f := range []func(string) (string, error){filepath.Abs, filepath.EvalSymlinks} {
+		if cleaned, err = f(cleaned); err != nil {
+			break
+		}
+	}
+
+	return
 }

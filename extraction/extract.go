@@ -12,6 +12,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/efritz/go-genlib/paths"
 	"github.com/efritz/go-genlib/types"
 )
 
@@ -44,7 +45,7 @@ func (e *Extractor) Extract(importPaths []string) (*types.Packages, error) {
 
 		log.Printf(
 			"parsing package '%s'\n",
-			importPath,
+			paths.GetRelativePath(path),
 		)
 
 		pkg, pkgType, err := e.importPath(path, importPath)
