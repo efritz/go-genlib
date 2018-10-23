@@ -15,24 +15,23 @@ func GenerateFunction(methodName string, params, results []jen.Code, body ...jen
 		Block(body...)
 }
 
-func GenerateMethod(receiverName, structName, methodName string, params, results []jen.Code, body ...jen.Code) jen.Code {
+func GenerateMethod(receiver jen.Code, methodName string, params, results []jen.Code, body ...jen.Code) jen.Code {
 	return jen.Func().
-		Params(jen.Id(receiverName).Op("*").Id(structName)).
+		Params(receiver).
 		Id(methodName).
 		Params(params...).
 		Params(results...).
 		Block(body...)
 }
 
-func GenerateOverride(receiverName, structName, importPath string, method *types.Method, body ...jen.Code) jen.Code {
+func GenerateOverride(receiver jen.Code, importPath string, method *types.Method, body ...jen.Code) jen.Code {
 	params := GenerateParamTypes(method, importPath, false)
 	for i, param := range params {
 		params[i] = Compose(jen.Id(fmt.Sprintf("v%d", i)), param)
 	}
 
 	return GenerateMethod(
-		receiverName,
-		structName,
+		receiver,
 		method.Name,
 		params,
 		GenerateResultTypes(method, importPath),
