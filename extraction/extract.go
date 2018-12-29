@@ -38,27 +38,27 @@ func NewExtractor() (*Extractor, error) {
 func (e *Extractor) Extract(importPaths []string) (*types.Packages, error) {
 	packages := map[string]*types.Package{}
 	for _, importPath := range importPaths {
-		path, err := findPath(e.workingDirectory, importPath)
-		if err != nil {
-			return nil, err
+		path, dir, ok := paths.ResolveImportPath(e.workingDirectory, importPath)
+		if !ok {
+			return nil, fmt.Errorf("could not locate package %s", importPath)
 		}
 
 		log.Printf(
 			"parsing package '%s'\n",
-			paths.GetRelativePath(path),
+			paths.GetRelativePath(dir),
 		)
 
-		pkg, pkgType, err := e.importPath(path, importPath)
+		pkg, pkgType, err := e.importPath(dir, path)
 		if err != nil {
 			return nil, err
 		}
 
-		visitor := newVisitor(importPath, pkgType)
+		visitor := newVisitor(path, pkgType)
 		for _, file := range pkg.Files {
 			ast.Walk(visitor, file)
 		}
 
-		packages[importPath] = types.NewPackage(importPath, visitor.types)
+		packages[path] = types.NewPackage(path, visitor.types)
 	}
 
 	return types.NewPackages(packages), nil

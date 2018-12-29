@@ -30,13 +30,8 @@ func Generate(
 	filenameGenerator FilenameGenerator,
 	interfaceGenerator InterfaceGenerator,
 ) error {
-	importPath, err := inferImportPath(opts.OutputDir)
-	if err != nil {
-		return err
-	}
-
 	for _, iface := range ifaces {
-		if iface.ImportPath == importPath {
+		if iface.ImportPath == opts.OutputImportPath {
 			iface.ImportPath = ""
 		}
 	}
@@ -53,15 +48,6 @@ func Generate(
 	}
 
 	return generateFile(appName, appVersion, ifaces, opts, interfaceGenerator)
-}
-
-func inferImportPath(path string) (string, error) {
-	if gopath := paths.Gopath(); strings.HasPrefix(path, gopath) {
-		// gopath + /src/
-		return path[len(gopath)+5:], nil
-	}
-
-	return "", fmt.Errorf("destination is outside $GOPATH")
 }
 
 func generateFile(

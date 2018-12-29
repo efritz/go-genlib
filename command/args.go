@@ -6,19 +6,21 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/alecthomas/kingpin"
 	"github.com/efritz/go-genlib/paths"
 )
 
 type Options struct {
-	ImportPaths    []string
-	PkgName        string
-	Interfaces     []string
-	OutputFilename string
-	OutputDir      string
-	Prefix         string
-	Force          bool
+	ImportPaths      []string
+	PkgName          string
+	Interfaces       []string
+	OutputFilename   string
+	OutputDir        string
+	OutputImportPath string
+	Prefix           string
+	Force            bool
 }
 
 var GoIdentifierPattern = regexp.MustCompile("^[A-Za-z]([A-Za-z0-9_]*[A-Za-z])?$")
@@ -38,12 +40,13 @@ func parseArgs(
 	}
 
 	app.Arg("path", "The import paths used to search for eligible interfaces").Required().StringsVar(&opts.ImportPaths)
+	app.Flag("package", "The name of the generated package. It will be inferred from the output options by default.").Short('p').StringVar(&opts.PkgName)
+	app.Flag("interfaces", "A whitelist of interfaces to generate given the import paths.").Short('i').StringsVar(&opts.Interfaces)
 	app.Flag("dirname", "The target output directory. Each mock will be written to a unique file.").Short('d').StringVar(&opts.OutputDir)
 	app.Flag("filename", "The target output file. All mocks are written to this file.").Short('o').StringVar(&opts.OutputFilename)
-	app.Flag("force", "Do not abort if a write to disk would overwrite an existing file.").Short('f').BoolVar(&opts.Force)
-	app.Flag("interfaces", "A whitelist of interfaces to generate given the import paths.").Short('i').StringsVar(&opts.Interfaces)
-	app.Flag("package", "The name of the generated package. Is the name of target directory if dirname or filename is supplied by default.").Short('p').StringVar(&opts.PkgName)
+	app.Flag("import-path", "The import path of the generated package. It will be inferred from the tarrget directory by default.").StringVar(&opts.PkgName)
 	app.Flag("prefix", "A prefix used in the name of each mock struct. Should be TitleCase by convention.").StringVar(&opts.Prefix)
+	app.Flag("force", "Do not abort if a write to disk would overwrite an existing file.").Short('f').BoolVar(&opts.Force)
 	argHook(app)
 
 	if _, err := app.Parse(os.Args[1:]); err != nil {
@@ -70,20 +73,29 @@ func parseArgs(
 }
 
 func validateOptions(opts *Options) (bool, error) {
-	if opts.PkgName == "" {
-		if opts.OutputDir == "" {
-			return false, fmt.Errorf("could not infer package")
+	if opts.PkgName != "" && opts.OutputImportPath != "" {
+		return false, fmt.Errorf("package name and output import path are mutually exclusive")
+	}
+
+	if opts.OutputImportPath == "" {
+		path, ok := paths.InferImportPath(opts.OutputDir)
+		if !ok {
+			return false, fmt.Errorf("could not infer output import path")
 		}
 
-		opts.PkgName = path.Base(opts.OutputDir)
+		opts.OutputImportPath = path
+	}
+
+	if opts.PkgName == "" {
+		opts.PkgName = opts.OutputImportPath[strings.LastIndex(opts.OutputImportPath, "/")+1:]
 	}
 
 	if !GoIdentifierPattern.Match([]byte(opts.PkgName)) {
-		return false, fmt.Errorf("illegal package name supplied")
+		return false, fmt.Errorf("package name `%s` is illegal", opts.PkgName)
 	}
 
 	if opts.Prefix != "" && !GoIdentifierPattern.Match([]byte(opts.Prefix)) {
-		kingpin.Fatalf("illegal prefix supplied, try --help")
+		return false, fmt.Errorf("prefix `%s` is illegal", opts.Prefix)
 	}
 
 	return false, nil
