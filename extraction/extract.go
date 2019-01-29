@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"go/ast"
 	"go/importer"
-	"go/parser"
 	"go/token"
 	gotypes "go/types"
 	"log"
 	"os"
-	"path"
-	"strings"
+
+	gopackages "golang.org/x/tools/go/packages"
 
 	"github.com/efritz/go-genlib/paths"
 	"github.com/efritz/go-genlib/types"
@@ -36,8 +35,21 @@ func NewExtractor() (*Extractor, error) {
 }
 
 func (e *Extractor) Extract(importPaths []string) (*types.Packages, error) {
+	packageConfig := &gopackages.Config{
+		Mode: gopackages.LoadSyntax,
+	}
+
 	packages := map[string]*types.Package{}
 	for _, importPath := range importPaths {
+		pkgs, err := gopackages.Load(packageConfig, importPath)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"could not load package %s (%s)",
+				importPath,
+				err.Error(),
+			)
+		}
+
 		path, dir, ok := paths.ResolveImportPath(e.workingDirectory, importPath)
 		if !ok {
 			return nil, fmt.Errorf("could not locate package %s", importPath)
@@ -48,13 +60,8 @@ func (e *Extractor) Extract(importPaths []string) (*types.Packages, error) {
 			paths.GetRelativePath(dir),
 		)
 
-		pkg, pkgType, err := e.importPath(dir, path)
-		if err != nil {
-			return nil, err
-		}
-
-		visitor := newVisitor(path, pkgType)
-		for _, file := range pkg.Files {
+		visitor := newVisitor(path, pkgs[0].Types)
+		for _, file := range pkgs[0].Syntax {
 			ast.Walk(visitor, file)
 		}
 
@@ -62,60 +69,4 @@ func (e *Extractor) Extract(importPaths []string) (*types.Packages, error) {
 	}
 
 	return types.NewPackages(packages), nil
-}
-
-func (e *Extractor) importPath(path, importPath string) (*ast.Package, *gotypes.Package, error) {
-	pkgs, err := parser.ParseDir(e.fset, path, fileFilter, 0)
-	if err != nil {
-		return nil, nil, fmt.Errorf(
-			"could not import package '%s' (%s)",
-			importPath,
-			err.Error(),
-		)
-	}
-
-	files := []*ast.File{}
-	for _, pkg := range pkgs {
-		for _, file := range pkg.Files {
-			files = append(files, file)
-		}
-	}
-
-	pkgType, err := e.typeConfig.Check("", e.fset, files, nil)
-	if err != nil {
-		return nil, nil, fmt.Errorf(
-			"could not import package '%s' (%s)",
-			importPath,
-			err.Error(),
-		)
-	}
-
-	if pkg := getFirst(pkgs); pkg != nil {
-		return pkg, pkgType, nil
-	}
-
-	return nil, nil, fmt.Errorf(
-		"could not import package '%s' (no files in import path)",
-		importPath,
-	)
-}
-
-func fileFilter(info os.FileInfo) bool {
-	var (
-		name = info.Name()
-		ext  = path.Ext(name)
-		base = strings.TrimSuffix(name, ext)
-	)
-
-	return !info.IsDir() && ext == ".go" && !strings.HasSuffix(base, "_test")
-}
-
-func getFirst(pkgs map[string]*ast.Package) *ast.Package {
-	if len(pkgs) == 1 {
-		for _, pkg := range pkgs {
-			return pkg
-		}
-	}
-
-	return nil
 }
