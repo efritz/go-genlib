@@ -6,7 +6,7 @@ import (
 	"github.com/dave/jennifer/jen"
 )
 
-func GenerateZeroValue(typ types.Type, importPath string) *jen.Statement {
+func GenerateZeroValue(typ types.Type, importPath, outputImportPath string) *jen.Statement {
 	switch t := typ.(type) {
 	case *types.Basic:
 		kind := t.Kind()
@@ -21,13 +21,13 @@ func GenerateZeroValue(typ types.Type, importPath string) *jen.Statement {
 
 	case *types.Named:
 		if shouldEmitNamedType(t) {
-			return Compose(generateQualifiedName(t, importPath), jen.Block())
+			return Compose(generateQualifiedName(t, importPath, outputImportPath), jen.Block())
 		}
 
-		return GenerateZeroValue(t.Underlying(), importPath)
+		return GenerateZeroValue(t.Underlying(), importPath, outputImportPath)
 
 	case *types.Struct:
-		return GenerateType(typ, importPath, false).Block()
+		return GenerateType(typ, importPath, outputImportPath, false).Block()
 	}
 
 	return jen.Nil()

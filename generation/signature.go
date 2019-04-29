@@ -24,8 +24,8 @@ func GenerateMethod(receiver jen.Code, methodName string, params, results []jen.
 		Block(body...)
 }
 
-func GenerateOverride(receiver jen.Code, importPath string, method *types.Method, body ...jen.Code) jen.Code {
-	params := GenerateParamTypes(method, importPath, false)
+func GenerateOverride(receiver jen.Code, importPath, outputImportPath string, method *types.Method, body ...jen.Code) jen.Code {
+	params := GenerateParamTypes(method, importPath, outputImportPath, false)
 	for i, param := range params {
 		params[i] = Compose(jen.Id(fmt.Sprintf("v%d", i)), param)
 	}
@@ -34,17 +34,18 @@ func GenerateOverride(receiver jen.Code, importPath string, method *types.Method
 		receiver,
 		method.Name,
 		params,
-		GenerateResultTypes(method, importPath),
+		GenerateResultTypes(method, importPath, outputImportPath),
 		body...,
 	)
 }
 
-func GenerateParamTypes(method *types.Method, importPath string, omitDots bool) []jen.Code {
+func GenerateParamTypes(method *types.Method, importPath, outputImportPath string, omitDots bool) []jen.Code {
 	params := []jen.Code{}
 	for i, typ := range method.Params {
 		params = append(params, GenerateType(
 			typ,
 			importPath,
+			outputImportPath,
 			method.Variadic && i == len(method.Params)-1 && !omitDots,
 		))
 	}
@@ -52,12 +53,13 @@ func GenerateParamTypes(method *types.Method, importPath string, omitDots bool) 
 	return params
 }
 
-func GenerateResultTypes(method *types.Method, importPath string) []jen.Code {
+func GenerateResultTypes(method *types.Method, importPath, outputImportPath string) []jen.Code {
 	results := []jen.Code{}
 	for _, typ := range method.Results {
 		results = append(results, GenerateType(
 			typ,
 			importPath,
+			outputImportPath,
 			false,
 		))
 	}

@@ -8,9 +8,18 @@ import (
 	"github.com/dave/jennifer/jen"
 )
 
-func GenerateType(typ types.Type, importPath string, variadic bool) *jen.Statement {
+func SanitizeImportPath(path, outputImportPath string) string {
+	path = stripVendor(path)
+	if path == outputImportPath {
+		return ""
+	}
+
+	return path
+}
+
+func GenerateType(typ types.Type, importPath, outputImportPath string, variadic bool) *jen.Statement {
 	recur := func(typ types.Type) *jen.Statement {
-		return GenerateType(typ, importPath, false)
+		return GenerateType(typ, importPath, outputImportPath, false)
 	}
 
 	switch t := typ.(type) {
@@ -40,7 +49,7 @@ func GenerateType(typ types.Type, importPath string, variadic bool) *jen.Stateme
 		return Compose(jen.Map(recur(t.Key())), recur(t.Elem()))
 
 	case *types.Named:
-		return generateQualifiedName(t, importPath)
+		return generateQualifiedName(t, importPath, outputImportPath)
 
 	case *types.Pointer:
 		return Compose(jen.Op("*"), recur(t.Elem()))
@@ -74,7 +83,12 @@ func GenerateType(typ types.Type, importPath string, variadic bool) *jen.Stateme
 	}
 }
 
-func generateQualifiedName(t *types.Named, importPath string) *jen.Statement {
+func stripVendor(path string) string {
+	parts := strings.Split(path, "/vendor/")
+	return parts[len(parts)-1]
+}
+
+func generateQualifiedName(t *types.Named, importPath, outputImportPath string) *jen.Statement {
 	name := t.Obj().Name()
 
 	if t.Obj().Pkg() == nil {
@@ -82,10 +96,10 @@ func generateQualifiedName(t *types.Named, importPath string) *jen.Statement {
 	}
 
 	if path := t.Obj().Pkg().Path(); path != "" {
-		return jen.Qual(stripVendor(path), name)
+		return jen.Qual(SanitizeImportPath(path, outputImportPath), name)
 	}
 
-	return jen.Qual(stripVendor(importPath), name)
+	return jen.Qual(SanitizeImportPath(importPath, outputImportPath), name)
 }
 
 func getSliceTypePrefix(variadic bool) *jen.Statement {
@@ -94,9 +108,4 @@ func getSliceTypePrefix(variadic bool) *jen.Statement {
 	}
 
 	return jen.Index()
-}
-
-func stripVendor(path string) string {
-	parts := strings.Split(path, "/vendor/")
-	return parts[len(parts)-1]
 }

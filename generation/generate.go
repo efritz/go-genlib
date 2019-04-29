@@ -30,12 +30,6 @@ func Generate(
 	filenameGenerator FilenameGenerator,
 	interfaceGenerator InterfaceGenerator,
 ) error {
-	for _, iface := range ifaces {
-		if iface.ImportPath == opts.OutputImportPath {
-			iface.ImportPath = ""
-		}
-	}
-
 	if opts.OutputFilename == "" && opts.OutputDir != "" {
 		return generateDirectory(
 			appName,
