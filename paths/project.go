@@ -26,16 +26,16 @@ func InferImportPath(dirname string) (string, bool) {
 	return "", false
 }
 
-func ResolveImportPath(wd, importPath string) (string, string, bool) {
+func ResolveImportPath(wd, importPath string) (string, string) {
 	// See if we're in a module and generating for our own package
 	if module, baseDir, ok := Module(wd); ok && strings.HasPrefix(importPath, module) {
-		return importPath, filepath.Join(baseDir, importPath[len(module):]), true
+		return importPath, filepath.Join(baseDir, importPath[len(module):])
 	}
 
 	// See if it's a relative path to working directory
 	if dir := filepath.Join(wd, importPath); DirExists(dir) {
 		if path, ok := InferImportPath(dir); ok {
-			return path, dir, true
+			return path, dir
 		}
 	}
 
@@ -43,7 +43,7 @@ func ResolveImportPath(wd, importPath string) (string, string, bool) {
 		for wd != srcpath {
 			// See if it's vendored on any path up to the GOPATH root
 			if dir := filepath.Join(wd, "vendor", importPath); DirExists(dir) {
-				return importPath, dir, true
+				return importPath, dir
 			}
 
 			wd = filepath.Dir(wd)
@@ -52,10 +52,11 @@ func ResolveImportPath(wd, importPath string) (string, string, bool) {
 
 	// See if it's in the GOPATH
 	if dir := filepath.Join(srcpath, importPath); DirExists(dir) {
-		return importPath, dir, true
+		return importPath, dir
 	}
 
-	return "", "", false
+	// It's installed as a module
+	return importPath, importPath
 }
 
 func Module(dirname string) (string, string, bool) {

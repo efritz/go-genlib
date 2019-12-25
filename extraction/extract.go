@@ -50,10 +50,7 @@ func (e *Extractor) Extract(importPaths []string) (*types.Packages, error) {
 			)
 		}
 
-		path, dir, ok := paths.ResolveImportPath(e.workingDirectory, importPath)
-		if !ok {
-			return nil, fmt.Errorf("could not locate package %s", importPath)
-		}
+		path, dir := paths.ResolveImportPath(e.workingDirectory, importPath)
 
 		log.Printf(
 			"parsing package '%s'\n",
