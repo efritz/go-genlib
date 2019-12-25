@@ -41,6 +41,13 @@ func (e *Extractor) Extract(importPaths []string) (*types.Packages, error) {
 
 	packages := map[string]*types.Package{}
 	for _, importPath := range importPaths {
+		path, dir := paths.ResolveImportPath(e.workingDirectory, importPath)
+
+		log.Printf(
+			"parsing package '%s'\n",
+			paths.GetRelativePath(dir),
+		)
+
 		pkgs, err := gopackages.Load(packageConfig, importPath)
 		if err != nil {
 			return nil, fmt.Errorf(
@@ -50,12 +57,13 @@ func (e *Extractor) Extract(importPaths []string) (*types.Packages, error) {
 			)
 		}
 
-		path, dir := paths.ResolveImportPath(e.workingDirectory, importPath)
-
-		log.Printf(
-			"parsing package '%s'\n",
-			paths.GetRelativePath(dir),
-		)
+		for _, err := range pkgs[0].Errors {
+			return nil, fmt.Errorf(
+				"malformed package %s (%s)",
+				importPath,
+				err.Msg,
+			)
+		}
 
 		visitor := newVisitor(path, pkgs[0].Types)
 		for _, file := range pkgs[0].Syntax {
