@@ -111,10 +111,6 @@ func validateOutputPaths(opts *Options) (bool, error) {
 		opts.OutputDir = wd
 	}
 
-	if opts.OutputFilename != "" && opts.OutputDir != "" {
-		return false, fmt.Errorf("dirname and filename are mutually exclusive")
-	}
-
 	if opts.OutputFilename != "" {
 		opts.OutputDir = path.Dir(opts.OutputFilename)
 		opts.OutputFilename = path.Base(opts.OutputFilename)
